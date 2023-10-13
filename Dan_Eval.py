@@ -29,13 +29,15 @@ class sample:
         self.SampleValues = SampleValues
 
 class protein:
-    def __init__(self,ID,data,name):
+    def __init__(self,ID,data,name, symbol, uniprot):
         self.ID=ID
         self.data=data
         self.name=name
+        self.symbol=symbol
+        self.uniprot=uniprot
 
 class protein_sample:
-    def __init__(self,time,values):
+    def __init__(self, time, values):
         self.time=time
         self.values=values
 
@@ -47,37 +49,55 @@ class protein_data:
                  valuesMD = [],
                  valuesFP = [],
                  valuesFD = [],
+                 
                  meanP = 0,
                  meanD = 0,
                  meanMP = 0,
                  meanMD = 0,
                  meanFP = 0,
                  meanFD = 0,
+                 
                  sumP = 0,
                  sumD = 0,
                  sumMP = 0,
                  sumMD = 0,
                  sumFP = 0,
                  sumFD = 0,
+                 
                  numP = 0,
                  numD = 0,
                  numMP = 0,
                  numMD = 0,
                  numFP = 0,
                  numFD = 0,
+                 
                  fold_diff = 0,
                  fold_diff_M = 0,
                  fold_diff_F = 0,
+                 
                  stdD = 0,
                  stdP = 0,
                  stdMP = 0,
                  stdMD = 0,
                  stdFP = 0,
-                 stdFD = 0):
+                 stdFD = 0,
+                 
+                 ttestD = 0,
+                 ttestP = 0,
+                 ttestMD = 0,
+                 ttestMP = 0,
+                 ttestFP = 0,
+                 ttestFD = 0,
+                 
+                 mwD = 0,
+                 mwP = 0,
+                 mwMD = 0,
+                 mwMP = 0,
+                 mwFP = 0,
+                 mwFD = 0):
         
         self.valuesD = valuesD
         self.valuesP = valuesP
-        
         self.valuesMP = valuesMP
         self.valuesMD = valuesMD
         self.valuesFP = valuesFP
@@ -85,7 +105,6 @@ class protein_data:
         
         self.meanP = meanP
         self.meanD = meanD
-        
         self.meanMP = meanMP
         self.meanMD = meanMD
         self.meanFP = meanFP
@@ -106,18 +125,29 @@ class protein_data:
         self.numFD = numFD
         
         self.fold_diff = fold_diff
-        
         self.fold_diff_M = fold_diff_M
         self.fold_diff_F = fold_diff_F
         
         self.stdD = stdD
         self.stdP = stdP
-        
         self.stdMP = stdMP
         self.stdMD = stdMD
         self.stdFP = stdFP
         self.stdFD = stdFD
         
+        self.ttestD = ttestD
+        self.ttestP = ttestP
+        self.ttestMP = ttestMP
+        self.ttestMD = ttestMD
+        self.ttestFP = ttestFP
+        self.ttestFD = ttestFD
+        
+        self.mwD = mwD
+        self.mwP = mwP
+        self.mwMP = mwMP
+        self.mwMD = mwMD
+        self.mwFP = mwFP
+        self.mwFD = mwFD
 # read each file in the directory #
 def Read_Data(direc, datasub):
     # --------------------------------------------------------------------
@@ -235,7 +265,9 @@ def Read_Data(direc, datasub):
                             [protein_sample("Day_0", protein_data([],[],[],[],[],[],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)),
                              protein_sample("Day_3",protein_data([],[],[],[],[],[],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)),
                              protein_sample("EOT",protein_data([],[],[],[],[],[],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0))],
-                            raw_file.loc['TargetFullName'][i])) 
+                            raw_file.loc['TargetFullName'][i],
+                            raw_file.loc['EntrezGeneSymbol'][i],
+                            raw_file.loc['UniProt'][i])) 
         
         ## Additional test for key association ##
         for each in patient_list:
@@ -494,3 +526,5 @@ def test():
     
     errors=check(directory, easy_array)
     return errors, easy_array
+
+e,a=test()
