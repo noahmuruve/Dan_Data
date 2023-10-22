@@ -13,7 +13,7 @@ import os
 import pandas as pd
 import math as m
 import numpy as np
-import scipy
+import scipy.stats as ss
 
 class file_info:
     def __init__(self, file_name, protein_list):
@@ -56,7 +56,10 @@ class calculated_values:
                 ttest = 0,
                 mw = 0,
                 fold_diff_treatment_mean = False,
-                fold_diff_time_mean = False):
+                fold_diff_time_mean = False,
+                fold_diff_time_std = False,
+                fold_diff_time_ttest = False,
+                fold_diff_time_mw = False):
 
         self.sex = sex
         self.age = age
@@ -73,6 +76,9 @@ class calculated_values:
         self.mw = mw
         self.fold_diff_treatment_mean = fold_diff_treatment_mean
         self.fold_diff_time_mean = fold_diff_time_mean
+        self.fold_diff_time_std = fold_diff_time_std
+        self.fold_diff_time_ttest = fold_diff_time_ttest
+        self.fold_diff_time_mw = fold_diff_time_mw
 
 class order_ob:
     def __init__(self, typ, value, options):
@@ -269,8 +275,9 @@ def Parse_Data(protein_list, sex_flag, age_flag, age_cutoff, treatment_flag, tim
                                             samp.treatment,
                                             samp.time,
                                             samp.matrix,
-                                            [samp.value],
-                                            [samp.fold_diff_time]))
+                                            [samp.value]))
+                if samp.fold_diff_time:
+                    prot.calculated_values_list[-1].fold_diff_time_list = [samp.fold_diff_time]
         
             # ones we've finished collecting values for a single protein, we can calculate values per bin #
             for cv in prot.calculated_values_list:
@@ -278,15 +285,22 @@ def Parse_Data(protein_list, sex_flag, age_flag, age_cutoff, treatment_flag, tim
                 cv.tot = sum(cv.values)
                 cv.mean = cv.tot/cv.num
                 cv.std = np.std(cv.values)
-                #cv.ttest = 
-                #cv.mw = 
-                cv.fold_diff_time_mean = np.mean(cv.fold_diff_time_list)
+                if cv.fold_diff_time_list:
+                    cv.fold_diff_time_mean = np.mean(cv.fold_diff_time_list)
+                    cv.fold_diff_time_std = np.std(cv.fold_diff_time_list)
                 
                 if cv.time != "NA" and cv.treatment == "LSALT":
                     for ref_cv in prot.calculated_values_list:
                         if ref_cv.treatment == "P" and ref_cv.time == cv.time:
+                            
                             if ref_cv.mean:
-                                cv.fold_diff_treatment_mean = cv.mean/ref_cv.mean                
+                                cv.fold_diff_treatment_mean = cv.mean/ref_cv.mean
+                            cv.ttest = ss.ttest_ind(cv.values, ref_cv.values)
+                            cv.mw = ss.mannwhitneyu(cv.values, ref_cv.values)
+                            
+                            if cv.time !="Day_0":
+                                cv.fold_diff_time_ttest = ss.ttest_ind(cv.fold_diff_time_list, ref_cv.fold_diff_time_list)
+                                cv.fold_diff_time_mw = ss.mannwhitneyu(cv.fold_diff_time_list, ref_cv.fold_diff_time_list)
 
 def create_array(protein_list, sex_flag, age_flag, age_cutoff, treatment_flag, time_flag, matrix_flag, order):
     # function assumes time_flag and treatment_flag are true #
@@ -379,18 +393,17 @@ def order_cv(order_list, idx, active_options, prot, row):
                 if match:
                     row.append(cv.mean)
                     row.append(cv.std)
-                    #row.append(val.ttest)
-                    #row.append(val.mw)
+                    #row.append(cv.ttest)
+                    #row.append(cv.mw)
                     
                     if cv.fold_diff_treatment_mean:
                         row.append(cv.fold_diff_treatment_mean)
                         
                     if cv.fold_diff_time_mean:
                         row.append(cv.fold_diff_time_mean)
-                        
-                    #row.append(val.fold_diff_std)
-                    #row.append(val.fold_diff_ttest)
-                    #row.append(val.fold_diff_mw)
+                        #row.append(cv.fold_diff_time_std)
+                        #row.append(cv.fold_diff_time_ttest)
+                        #row.append(cv.fold_diff_time_mw)
 
 def check(direc,easy_array):
     test_array=np.array(pd.read_csv(open(direc + 'test_results/array_results.csv', 'r'),header=None))
