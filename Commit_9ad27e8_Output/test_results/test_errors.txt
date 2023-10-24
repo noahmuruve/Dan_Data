@@ -1,0 +1,32 @@
+0
+str
+1
+error at easy_array i = 0, j = 27 expected #DIV/0! got nan
+1
+str
+1
+error at easy_array i = 0, j = 32 expected #DIV/0! got nan
+2
+str
+1
+error at easy_array i = 1, j = 27 expected #DIV/0! got nan
+3
+str
+1
+error at easy_array i = 1, j = 32 expected #DIV/0! got nan
+4
+str
+1
+error at easy_array i = 2, j = 27 expected #DIV/0! got nan
+5
+str
+1
+error at easy_array i = 2, j = 32 expected #DIV/0! got nan
+6
+str
+1
+error at easy_array i = 3, j = 27 expected #DIV/0! got nan
+7
+str
+1
+error at easy_array i = 3, j = 32 expected #DIV/0! got nan
