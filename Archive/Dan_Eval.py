@@ -9,83 +9,112 @@ directory='C:/Users/noahm/Desktop/projects/Dan_Data/'
 ##############################################################################
 
 class fileinfo:
-    def __init__(self,patient_list,stuff,proteins):
+    def __init__(self,patient_list, protein_list):
         self.patient_list=patient_list
-        self.stuff=stuff
-        self.proteins=proteins
+        self.protein_list=protein_list
         
 class patient:
-    def __init__(self,ID,sample_list,sex,age,drug):
+    def __init__(self,ID,sample_list,sex,age,drug,fold_diff_plus_array):
         self.ID=ID
         self.sample_list=sample_list
         self.sex=sex
         self.age=age
         self.drug=drug
+        self.fold_diff_plus_array = fold_diff_plus_array
         
 class sample:
-    def __init__(self,SampleId = "", SampleTime = "", SampleValues=[]):
+    def __init__(self,SampleId = "", SampleTime = "", SampleMatrix = "", Proteins=[]):
         self.SampleId = SampleId
         self.SampleTime = SampleTime
-        self.SampleValues = SampleValues
+        self.SampleMatrix =SampleMatrix
+        self.Proteins = Proteins
 
-class protein:
-    def __init__(self,ID,data,name):
+class protein_sample:
+    def __init__(self,ID,data,name, symbol, uniprot,value):
         self.ID=ID
         self.data=data
         self.name=name
+        self.symbol=symbol
+        self.uniprot=uniprot
+        self.value = value
 
-class protein_sample:
-    def __init__(self,time,values):
-        self.time=time
+# class protein_sample:
+#     def __init__(self, time, values):
+#         self.time=time
+#         self.values=values
+
+class patient_fold_diff_plus:
+    def __init__(self, protein_ID, test_day, fold_diff, ttest, mw):
+        self.protein_ID = protein_ID
+        self.test_day = test_day
+        self.fold_diff = fold_diff
+        self.ttest = ttest
+        self.mw = mw
+
+class protein_interval:
+    def __init__ (self, ):
+        self.ID = ID
+        self.sex = sex
+        self.age = age
+        self.drug = drug
+        self.time = time
+        self.matrix = matrix
+        self.name=name
+        self.symbol=symbol
+        self.uniprot=uniprot
         self.values=values
-
 class protein_data:
     def __init__(self, 
-                 valuesD = [],
-                 valuesP = [],
-                 valuesMP = [],
-                 valuesMD = [],
-                 valuesFP = [],
-                 valuesFD = [],
+
                  meanP = 0,
                  meanD = 0,
                  meanMP = 0,
                  meanMD = 0,
                  meanFP = 0,
                  meanFD = 0,
+                 
                  sumP = 0,
                  sumD = 0,
                  sumMP = 0,
                  sumMD = 0,
                  sumFP = 0,
                  sumFD = 0,
+                 
                  numP = 0,
                  numD = 0,
                  numMP = 0,
                  numMD = 0,
                  numFP = 0,
                  numFD = 0,
+                 
                  fold_diff = 0,
                  fold_diff_M = 0,
                  fold_diff_F = 0,
+                 
                  stdD = 0,
                  stdP = 0,
                  stdMP = 0,
                  stdMD = 0,
                  stdFP = 0,
-                 stdFD = 0):
+                 stdFD = 0,
+                 
+                 ttestD = 0,
+                 ttestP = 0,
+                 ttestMD = 0,
+                 ttestMP = 0,
+                 ttestFP = 0,
+                 ttestFD = 0,
+                 
+                 mwD = 0,
+                 mwP = 0,
+                 mwMD = 0,
+                 mwMP = 0,
+                 mwFP = 0,
+                 mwFD = 0):
         
-        self.valuesD = valuesD
-        self.valuesP = valuesP
-        
-        self.valuesMP = valuesMP
-        self.valuesMD = valuesMD
-        self.valuesFP = valuesFP
-        self.valuesFD = valuesFD
         
         self.meanP = meanP
         self.meanD = meanD
-        
         self.meanMP = meanMP
         self.meanMD = meanMD
         self.meanFP = meanFP
@@ -106,18 +135,29 @@ class protein_data:
         self.numFD = numFD
         
         self.fold_diff = fold_diff
-        
         self.fold_diff_M = fold_diff_M
         self.fold_diff_F = fold_diff_F
         
         self.stdD = stdD
         self.stdP = stdP
-        
         self.stdMP = stdMP
         self.stdMD = stdMD
         self.stdFP = stdFP
         self.stdFD = stdFD
         
+        self.ttestD = ttestD
+        self.ttestP = ttestP
+        self.ttestMP = ttestMP
+        self.ttestMD = ttestMD
+        self.ttestFP = ttestFP
+        self.ttestFD = ttestFD
+        
+        self.mwD = mwD
+        self.mwP = mwP
+        self.mwMP = mwMP
+        self.mwMD = mwMD
+        self.mwFP = mwFP
+        self.mwFD = mwFD
 # read each file in the directory #
 def Read_Data(direc, datasub):
     # --------------------------------------------------------------------
@@ -235,7 +275,9 @@ def Read_Data(direc, datasub):
                             [protein_sample("Day_0", protein_data([],[],[],[],[],[],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)),
                              protein_sample("Day_3",protein_data([],[],[],[],[],[],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)),
                              protein_sample("EOT",protein_data([],[],[],[],[],[],0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0))],
-                            raw_file.loc['TargetFullName'][i])) 
+                            raw_file.loc['TargetFullName'][i],
+                            raw_file.loc['EntrezGeneSymbol'][i],
+                            raw_file.loc['UniProt'][i])) 
         
         ## Additional test for key association ##
         for each in patient_list:
@@ -494,3 +536,5 @@ def test():
     
     errors=check(directory, easy_array)
     return errors, easy_array
+
+e,a=test()
