@@ -47,38 +47,44 @@ class calculated_values:
                 treatment = "",
                 time = "",
                 matrix = "",
+                
                 values = [],
                 fold_diff_time_list = [],
-                num = 0,
-                tot = 0,
+                
                 mean = 0,
                 std = 0,
                 ttest = 0,
                 mw = 0,
+                
                 fold_diff_treatment_mean = False,
                 fold_diff_time_mean = False,
                 fold_diff_time_std = False,
                 fold_diff_time_ttest = False,
-                fold_diff_time_mw = False):
+                fold_diff_time_mw = False,
+                
+                fold_diff_treatment_time_mean = False):
 
         self.sex = sex
         self.age = age
         self.treatment = treatment
         self.time = time
         self.matrix = matrix
+        
         self.values = values
         self.fold_diff_time_list = fold_diff_time_list
-        self.num = num
-        self.tot = tot
+        
         self.mean = mean
         self.std = std
         self.ttest = ttest
         self.mw = mw
+        
         self.fold_diff_treatment_mean = fold_diff_treatment_mean
         self.fold_diff_time_mean = fold_diff_time_mean
         self.fold_diff_time_std = fold_diff_time_std
         self.fold_diff_time_ttest = fold_diff_time_ttest
         self.fold_diff_time_mw = fold_diff_time_mw
+        
+        self.fold_diff_treatment_time_mean = fold_diff_treatment_time_mean
 
 class order_ob:
     def __init__(self, typ, value, options):
@@ -88,9 +94,9 @@ class order_ob:
         
 # read each file in the directory #
 def Read_Data(direc, datasub):
+    error_log = []
     # --------------------------------------------------------------------
     ## read key ##
-    
     key_file="key/AB002 Subjects - Demographics.csv"
     key=pd.read_csv(open(direc + key_file, 'r'),header=None)
     
@@ -155,12 +161,16 @@ def Read_Data(direc, datasub):
                     )
                 
                     if not protein_list[-1].protein_ID or not protein_list[-1].name or not protein_list[-1].symbol or not protein_list[-1].uniprot:
-                        print("Error, missing protein info for column ", i)
+                        error_msg = "Error, missing protein info for column " + str(i)
+                        if error_msg not in error_log:
+                            error_log.append(error_msg)
                 
                 # Get Sample Patient ID #
                 patient_ID = raw_file.SampleId[j].split()[0].strip()
                 if len(patient_ID) == 0:
-                    print("Error, empty patient ID for: ", raw_file.SampleId[j].strip())
+                    error_msg = "Error, empty patient ID for: " + str(raw_file.SampleId[j].strip())
+                    if error_msg not in error_log:
+                        error_log.append(error_msg)
                 
                 # Get Sample Time #
                 temp_time = raw_file.SampleId[j].split()[1:]
@@ -177,14 +187,18 @@ def Read_Data(direc, datasub):
                         elif float(day) > 3:
                             time = "EOT" #EOT
                         else:
-                            print("Error, sample time not valid",patient_ID, temp_time)
+                            error_msg = "Error, sample time not valid" + str(patient_ID) + str(temp_time)
+                            if error_msg not in error_log:
+                                error_log.append(error_msg)
                             
                     elif item == "EOT":
                         time = "EOT"
                         timevalid=True
                 
                 if not timevalid:
-                    print("Error, sample time not valid for",patient_ID, temp_time)
+                    error_msg = "Error, sample time not valid for" + str(patient_ID) + str(temp_time)
+                    if error_msg not in error_log:
+                        error_log.append(error_msg)
                 
                 # look through key for patient info #
                 subfound=False
@@ -201,7 +215,9 @@ def Read_Data(direc, datasub):
                     sex="NA"
                     age="NA"
                     treatment="NA"
-                    print("sample ID not found on key:",patient_ID)
+                    error_msg = "sample ID not found on key:" + str(patient_ID)
+                    if error_msg not in error_log:
+                        error_log.append(error_msg)
                     
                 if first_file:
                     protein_idx = -1
@@ -227,14 +243,19 @@ def Read_Data(direc, datasub):
     # calculate fold_diffs #
     for prot in protein_list:
         for samp in prot.sample_list:
+            
+            # time fold diffs are stored in Day_3 and EOT so find samp that #
+            # will have fold diff #
             if samp.time != "NA" and samp.time != "Day_0":
+                
+                # find the sample from the patient on day_0 for this protein #
                 for ref_samp in prot.sample_list:
                     if ref_samp.time == "Day_0" and ref_samp.patient_ID == samp.patient_ID:
                         if ref_samp.value:    
                             samp.fold_diff_time = samp.value/ref_samp.value
                         break
                 
-    return protein_list
+    return protein_list, error_log
 
 def Parse_Data(protein_list, sex_flag, age_flag, age_cutoff, treatment_flag, time_flag, matrix_flag):
     # start by generating the calculated_value_list per protein #
@@ -279,29 +300,37 @@ def Parse_Data(protein_list, sex_flag, age_flag, age_cutoff, treatment_flag, tim
                 if samp.fold_diff_time:
                     prot.calculated_values_list[-1].fold_diff_time_list = [samp.fold_diff_time]
         
-            # ones we've finished collecting values for a single protein, we can calculate values per bin #
-            for cv in prot.calculated_values_list:
-                cv.num = len(cv.values)
-                cv.tot = sum(cv.values)
-                cv.mean = cv.tot/cv.num
-                cv.std = np.std(cv.values)
-                if cv.fold_diff_time_list:
-                    cv.fold_diff_time_mean = np.mean(cv.fold_diff_time_list)
-                    cv.fold_diff_time_std = np.std(cv.fold_diff_time_list)
+        # ones we've finished collecting values for a single protein, we can calculate values per bin #
+        for cv in prot.calculated_values_list:
+            cv.mean = np.mean(cv.values)
+            cv.std = np.std(cv.values)
+            if cv.fold_diff_time_list:
+                cv.fold_diff_time_mean = np.mean(cv.fold_diff_time_list)
+                cv.fold_diff_time_std = np.std(cv.fold_diff_time_list)
+            
+        # Once values per treatment type (drug vs placebo) have been found, 
+        # multi calc value variables can be calculated. For treatment fold #
+        # diffs (drug/placebo) have to find reference calc values. #
+        # start by finding a calc value that will have fold diff populated. #
+        # drug/placebo fold diffs are stored in the drug calc value #
+        for cv in prot.calculated_values_list:
+            if cv.time != "NA" and cv.treatment == "LSALT":
                 
-                if cv.time != "NA" and cv.treatment == "LSALT":
-                    for ref_cv in prot.calculated_values_list:
-                        if ref_cv.treatment == "P" and ref_cv.time == cv.time:
+                # find the calc value that is the placebo at the same time for this protein #
+                for ref_cv in prot.calculated_values_list:
+                    if ref_cv.treatment == "P" and ref_cv.time == cv.time:
+                        
+                        if ref_cv.mean:
+                            cv.fold_diff_treatment_mean = cv.mean/ref_cv.mean
+                        cv.ttest = ss.ttest_ind(cv.values, ref_cv.values, equal_var=False).pvalue
+                        cv.mw = ss.mannwhitneyu(cv.values, ref_cv.values).pvalue
+                        
+                        if cv.time !="Day_0":
+                            cv.fold_diff_time_ttest = ss.ttest_ind(cv.fold_diff_time_list, ref_cv.fold_diff_time_list, equal_var=False).pvalue
+                            cv.fold_diff_time_mw = ss.mannwhitneyu(cv.fold_diff_time_list, ref_cv.fold_diff_time_list).pvalue
                             
-                            if ref_cv.mean:
-                                cv.fold_diff_treatment_mean = cv.mean/ref_cv.mean
-                            cv.ttest = ss.ttest_ind(cv.values, ref_cv.values)
-                            cv.mw = ss.mannwhitneyu(cv.values, ref_cv.values)
+                            cv.fold_diff_treatment_time_mean = cv.fold_diff_time_mean/ref_cv.fold_diff_time_mean
                             
-                            if cv.time !="Day_0":
-                                cv.fold_diff_time_ttest = ss.ttest_ind(cv.fold_diff_time_list, ref_cv.fold_diff_time_list)
-                                cv.fold_diff_time_mw = ss.mannwhitneyu(cv.fold_diff_time_list, ref_cv.fold_diff_time_list)
-
 def create_array(protein_list, sex_flag, age_flag, age_cutoff, treatment_flag, time_flag, matrix_flag, order):
     # function assumes time_flag and treatment_flag are true #
     assert time_flag
@@ -340,13 +369,17 @@ def create_array(protein_list, sex_flag, age_flag, age_cutoff, treatment_flag, t
     return easy_array
 
 def order_cv(order_list, idx, active_options, prot, row):
+    
     # look through options at current depth (idx) or order list #
     for each in order_list[idx].options:
+        
         # update active option array #
         active_options[idx] = each
+        
         # check if we need to go further down the list #
         if idx+1<len(order_list) and order_list[idx+1].value:
             order_cv(order_list,idx+1,active_options,prot,row)
+        
         else:
             # find the calculated calues object that matches active options #
             for cv in prot.calculated_values_list:
@@ -393,17 +426,23 @@ def order_cv(order_list, idx, active_options, prot, row):
                 if match:
                     row.append(cv.mean)
                     row.append(cv.std)
-                    #row.append(cv.ttest)
-                    #row.append(cv.mw)
+                    if cv.ttest:
+                        row.append(cv.ttest)
+                        row.append(cv.mw)
                     
                     if cv.fold_diff_treatment_mean:
                         row.append(cv.fold_diff_treatment_mean)
                         
                     if cv.fold_diff_time_mean:
                         row.append(cv.fold_diff_time_mean)
-                        #row.append(cv.fold_diff_time_std)
-                        #row.append(cv.fold_diff_time_ttest)
-                        #row.append(cv.fold_diff_time_mw)
+                        row.append(cv.fold_diff_time_std)
+                        
+                    if cv.fold_diff_time_ttest:
+                        row.append(cv.fold_diff_time_ttest)
+                        row.append(cv.fold_diff_time_mw)
+                    
+                    if cv.fold_diff_treatment_mean and cv.fold_diff_time_mean:
+                        row.append(cv.fold_diff_treatment_time_mean)
 
 def check(direc,easy_array):
     test_array=np.array(pd.read_csv(open(direc + 'test_results/array_results.csv', 'r'),header=None))
@@ -412,7 +451,7 @@ def check(direc,easy_array):
         for j in range(0,len(test_array[0])):
             test_pass=True
             try:
-                if abs(float(easy_array[i][j]) - float(test_array[i][j]))>0.0001:
+                if abs(float(easy_array[i][j]) - float(test_array[i][j]))>0.0001 or (m.isnan(float(test_array[i][j])) == False and m.isnan(float(easy_array[i][j]) - float(test_array[i][j]))):
                     test_pass=False
             except:
                 if easy_array[i][j] != test_array[i][j]:
@@ -430,19 +469,20 @@ def check(direc,easy_array):
     return error_list
 
 def main(sex, age, treatment, time, matrix, order):
-    protein_list = Read_Data(directory,'data')
+    protein_list,error_log = Read_Data(directory,'data')
     Parse_Data(protein_list,sex,age,0,treatment,time,matrix)
     easy_array = create_array(protein_list,sex,age,0,treatment,time,matrix,order)
     
-    return easy_array
+    return easy_array,error_log
 
 def test(sex, age, treatment, time, matrix, order):
-    protein_list = Read_Data(directory,'test')
+    protein_list,error_log = Read_Data(directory,'test')
     Parse_Data(protein_list,sex,age,0,treatment,time,matrix)
     easy_array = create_array(protein_list,sex,age,0,treatment,time,matrix,order)
     errors=check(directory, easy_array)
-    return errors, easy_array
+    return errors, easy_array, error_log
 
 
 print("enter Ture or False for sex, age, treatment, time, matrix. Then enter order array (higher number is lower down on the excel sheet).\n")
-e,a = test(False, False, True, True, False, [0,0,1,2,0])      
+# e,a, el = test(False, False, True, True, False, [0,0,1,2,0])
+easy_array, error_log = main(False, False, True, True, False, [0,0,1,2,0])    

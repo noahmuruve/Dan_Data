@@ -1,8 +1,0 @@
-t test or man whitney u on:
-- raw values of drug vs placebo per day, (3 tests) [I've already added in data values here but done nothing with it. might want a separate object for ttests and mw}
-- day 3 over day 0 drug per patient per protein vs day 3 over day 0 placebo per patient per protein (1 test)
-- EOT over day 0 drug per patient per protein vs EOT over day 0 placebo per patient per protein (1 test)
-want all the proteins where test < 0.05
-t test for normal distributions (parametric) - normality test (pass = T-test)
-
-I will know whether to use T test or man whitney u based on data shape, this will require me to recalculate all the mean values per patient per protein
