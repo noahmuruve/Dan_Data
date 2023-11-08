@@ -174,38 +174,42 @@ def Read_Data(direc, datasub):
                 
                 # Get Sample Time #
                 temp_time = raw_file.SampleId[j].split()[1:]
-                timevalid=False
-                time = "NA"
-                for item in temp_time:
-                    if item.startswith("D"):
-                        day=item[1:]
-                        timevalid=True
-                        if float(day) == 1:
-                            time = "Day_0" #zero
-                        elif float(day) <= 3:
-                            time = "Day_3" #3
-                        elif float(day) > 3:
-                            time = "EOT" #EOT
-                        else:
-                            error_msg = "Error, sample time not valid" + str(patient_ID) + str(temp_time)
-                            if error_msg not in error_log:
-                                error_log.append(error_msg)
-                            
-                    elif item == "EOT":
-                        time = "EOT"
-                        timevalid=True
                 
-                if not timevalid:
+                # timevalid=False
+                # time = "NA"
+                # for item in temp_time:
+                #     if item.startswith("D"):
+                #         day=item[1:]
+                #         timevalid=True
+                #         if float(day) == 1:
+                #             time = "Day_0" #zero
+                #         elif float(day) <= 3:
+                #             time = "Day_3" #3
+                #         elif float(day) > 3:
+                #             time = "EOT" #EOT
+                #         else:
+                #             error_msg = "Error, sample time not valid" + str(patient_ID) + str(temp_time)
+                #             if error_msg not in error_log:
+                #                 error_log.append(error_msg)
+                            
+                #     elif item == "EOT":
+                #         time = "EOT"
+                #         timevalid=True
+                
+                if len(temp_time) == 0:
+                    time = "NA"
                     error_msg = "Error, sample time not valid for" + str(patient_ID) + str(temp_time)
                     if error_msg not in error_log:
                         error_log.append(error_msg)
-                
+                else:
+                    time = int(temp_time[0])
+                    
                 # look through key for patient info #
                 subfound=False
                 for sub in key.iterrows():
-                    if patient_ID==sub[1][0]:
+                    if patient_ID==str(sub[1][0]):
                         sex=sub[1][1].strip()
-                        age=sub[1][2] #this one is int so does not need strip()
+                        age=sub[1][2].strip()
                         treatment=sub[1][3].strip()
                         subfound=True
                         break
@@ -244,13 +248,13 @@ def Read_Data(direc, datasub):
     for prot in protein_list:
         for samp in prot.sample_list:
             
-            # time fold diffs are stored in Day_3 and EOT so find samp that #
+            # time fold diffs are stored in Day_8 so find samp that #
             # will have fold diff #
-            if samp.time != "NA" and samp.time != "Day_0":
+            if samp.time != "NA" and samp.time != 5:
                 
                 # find the sample from the patient on day_0 for this protein #
                 for ref_samp in prot.sample_list:
-                    if ref_samp.time == "Day_0" and ref_samp.patient_ID == samp.patient_ID:
+                    if ref_samp.time == 5 and ref_samp.patient_ID == samp.patient_ID:
                         if ref_samp.value:    
                             samp.fold_diff_time = samp.value/ref_samp.value
                         break
@@ -314,7 +318,7 @@ def Parse_Data(protein_list, sex_flag, age_flag, age_cutoff, treatment_flag, tim
         # start by finding a calc value that will have fold diff populated. #
         # drug/placebo fold diffs are stored in the drug calc value #
         for cv in prot.calculated_values_list:
-            if cv.time != "NA" and cv.treatment == "LSALT":
+            if cv.time != "NA" and cv.treatment == "D":
                 
                 # find the calc value that is the placebo at the same time for this protein #
                 for ref_cv in prot.calculated_values_list:
@@ -325,7 +329,7 @@ def Parse_Data(protein_list, sex_flag, age_flag, age_cutoff, treatment_flag, tim
                         cv.ttest = ss.ttest_ind(cv.values, ref_cv.values, equal_var=False).pvalue
                         cv.mw = ss.mannwhitneyu(cv.values, ref_cv.values).pvalue
                         
-                        if cv.time !="Day_0":
+                        if cv.time != 5:
                             cv.fold_diff_time_ttest = ss.ttest_ind(cv.fold_diff_time_list, ref_cv.fold_diff_time_list, equal_var=False).pvalue
                             cv.fold_diff_time_mw = ss.mannwhitneyu(cv.fold_diff_time_list, ref_cv.fold_diff_time_list).pvalue
                             
@@ -340,8 +344,8 @@ def create_array(protein_list, sex_flag, age_flag, age_cutoff, treatment_flag, t
     # todo: probably will want to shift this up so that options aren't hard coded #
     order_list = [order_ob("sex",order[0], ["M", "F"]),
                   order_ob("age",order[1],[69]),
-                  order_ob("treatment",order[2], ["LSALT","P"]),
-                  order_ob("time",order[3], ["Day_0","Day_3", "EOT"]),
+                  order_ob("treatment",order[2], ["D","P"]),
+                  order_ob("time",order[3], [5,8]),
                   order_ob("matrix",order[4], ["EDTA Plasma", "Serum"])]
 
     order_list.sort(reverse = True, key=lambda order_ob: order_ob.value)
