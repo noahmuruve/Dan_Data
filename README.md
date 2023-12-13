@@ -8,6 +8,9 @@ Protein_Analysis.py is the main scripot in this project. It was developed in Spy
 
 This code was run through test as can be seen in the test() function directly above main(). test() works identically to main, except that it parses a smaller data set located in the test folder, and also outputs an additional error log which compares the output data (easy_array in main) to a truth array saved in the test_results folder. The inputs to main() and test() are identical. When the script is first run, instructions on how to set variables are printed in the IDE's kernal. 
 
+## array_results.xlsx
+A working excel sheet used to generate and validate the data in the test_results folder.
+
 ## Folder Info
 ### Archive
 Contains archived code and data.
